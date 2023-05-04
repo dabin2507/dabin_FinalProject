@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.naver.cowork.mybatis.mapper.MemberMapper">
+	<select id="isId" resultType="member" parameterType="String">
+		select user_id,
+				 user_password, 
+				 user_email, 
+				 user_name, 
+				 user_dept, 
+				 user_job, 
+				 user_img, 
+				 user_card, 
+				 user_fax, 
+				 user_phone, 
+				 user_join_date,
+				 user_auth
+		from user_info where user_id = #{user_id}
+	</select>
+
+	<insert id="insert">
+		insert into user_info ( user_id,user_password,user_email,user_name )
+		values
+		(#{user_id}, #{user_password}, #{user_email}, #{user_name})
+	</insert>
+
+	<select id="logincheck" resultType="member" parameterType="Map">
+		select * from user_info where user_id = #{user_id} and user_password = #{user_password}
+	</select>
+
+	<update id="mypageUpdate">
+        update user_info
+        set
+        user_phone = #{user_phone},
+        user_fax = #{user_fax}
+        <if test="user_card != null">
+            , user_img = #{originalfile}
+            , user_card = #{user_card}
+        </if>
+        where user_id = #{user_id}
+    </update>
+
+	<update id="passUpdate">
+        update user_info
+        set user_password = #{user_password}
+        where user_id = #{user_id}
+    </update>
+
+    <update id="authUpdate">
+        update user_info
+        set user_auth = #{user_auth}
+        where user_id = #{user_id}
+    </update>
+
+	<select id="members" resultType="member">
+        select rn,
+               user_id,
+               user_img,
+               user_email,
+               user_name,
+               user_auth,
+               user_dept,
+               user_job,
+               user_fax,
+               user_state,
+               user_join_date,
+               user_phone,
+               user_card
+        from (select ROWNUM rn,
+                     z.user_id,
+                     z.user_img,
+                     z.user_email,
+                     z.user_name,
+                     z.user_auth,
+                     z.user_dept,
+                     z.user_job,
+                     z.user_fax,
+                     z.user_state,
+                     z.user_join_date,
+                     z.user_phone,
+                     z.user_card
+              from (select user_id,
+                           user_img,
+                           user_email,
+                           user_name,
+                           user_auth,
+                           user_dept,
+                           user_job,
+                           user_fax,
+                           user_state,
+                           user_join_date,
+                           user_phone,
+                           user_card
+                    from user_info
+                    order by DECODE(user_state, 'CP', 1, 'WT', 2, 'ST', 3), user_auth asc) z)
+        <![CDATA[
+        where rn > #{skip}
+          and rn <= #{viewSize} * #{pageNum}
+        ]]>
+         
+	</select>
+
+    <update id="stateUpdate">
+        update user_info
+        set user_auth  = #{user_auth},
+            user_state = #{user_state}
+        where user_id = #{user_id}
+    </update>
+
+    <select id="getCount" resultType="int">
+        select COUNT(user_id)
+        from user_info
+    </select>
+
+    <update id="adminUpdate">
+        update user_info
+        set
+            user_name = #{user_name},
+            user_dept = #{user_dept},
+            user_job = #{user_job},
+            user_phone = #{user_phone},
+            user_fax = #{user_fax},
+            user_email = #{user_email}
+
+        where user_id = #{user_id}
+    </update>
+
+	<select id="getSearchList" resultType="member">
+		select * from (select rownum rnum, b.*
+		from (select *
+		from user_info
+		where
+		id != 'admin'
+		<include refid="search_" />
+
+		order by id
+		)b
+		where rownum &lt;= #{end}
+		)
+		where rnum between #{start} and #{end}
+	</select>
+
+	<select id="getSearchListCount" resultType="int">
+		select count(*) from user_info
+		where id != 'admin'
+		<include refid="search_" />
+	</select>
+
+	<sql id="search_">
+		<if test="search_field != null">
+			and
+			<choose>
+				<when test='search_field == "id"'>id</when>
+				<when test='search_field == "name"'>name</when>
+				<when test='search_field == "age"'>age</when>
+				<when test='search_field == "gender"'>gender</when>
+			</choose>
+			like #{search_word}
+		</if>
+	</sql>
+
+	<delete id="delete">
+		delete from user_info
+		where id = #{id}
+	</delete>
+	
+	
+	
+	<select id="searchList" resultType="Map">
+		select u.USER_NAME, u.USER_DEPT, u.USER_EMAIL, u.USER_IMG, d.DEPT_NAME
+		from USER_INFO u, DEPT d
+		where u.USER_NAME like '%' || #{searchword} || '%'
+	</select>
+	
+	<select id="user_img" resultType="String">
+		select user_img
+		from user_info
+		where user_id=#{user_id}
+	</select>
+
+</mapper>
